@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#081209">
+<title>AgriVision AI 🇨🇲</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#081209; --bg2:#0e2010; --bg3:#163318;
+  --green:#1e7a38; --lime:#6ed44a; --lime2:#9deb78;
+  --limedim:rgba(110,212,74,.12); --limeborder:rgba(110,212,74,.22);
+  --gold:#f0c030; --red:#e04444; --blue:#3a9ddd;
+  --text:#e8f5e2; --muted:rgba(232,245,226,.4);
+  --card:rgba(255,255,255,.038); --r:16px;
+  --safe-b:env(safe-area-inset-bottom,16px);
+  --safe-t:env(safe-area-inset-top,0px);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);overflow:hidden;position:fixed}
+
+/* ── APP SHELL ── */
+.app{display:flex;flex-direction:column;height:100%;max-width:430px;margin:0 auto;position:relative;overflow:hidden}
+.safe-top{height:var(--safe-t);background:var(--bg);flex-shrink:0}
+
+/* ── HEADER ── */
+header{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:10px 18px 8px;background:linear-gradient(180deg,var(--bg) 60%,transparent);z-index:30}
+.brand{display:flex;align-items:center;gap:9px}
+.logo{width:34px;height:34px;background:linear-gradient(135deg,var(--green),var(--lime));border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;box-shadow:0 3px 12px rgba(110,212,74,.35)}
+.app-name{font-size:.95rem;font-weight:800;color:var(--lime);letter-spacing:-.2px}
+.app-sub{font-size:.55rem;color:var(--muted);letter-spacing:.07em;text-transform:uppercase}
+.key-pill{background:var(--card);border:1px solid var(--limeborder);border-radius:20px;padding:5px 11px;font-size:.62rem;font-family:'Space Mono',monospace;color:var(--muted);cursor:pointer;transition:.2s}
+.key-pill.set{color:var(--lime)}
+
+/* ── SCROLL ── */
+.scroll{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;scroll-behavior:smooth}
+.panel{display:none;padding-bottom:calc(90px + var(--safe-b))}
+.panel.active{display:block}
+
+/* ── BOTTOM NAV ── */
+nav{position:absolute;bottom:0;left:0;right:0;padding:8px 12px;padding-bottom:calc(8px + var(--safe-b));background:rgba(8,18,9,.92);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);border-top:1px solid var(--limeborder);display:flex;justify-content:space-around;z-index:100}
+.ni{display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;padding:5px 18px;border-radius:12px;border:1px solid transparent;transition:.2s;min-width:56px}
+.ni.on{background:var(--limedim);border-color:var(--limeborder)}
+.ni-ico{font-size:1.3rem}
+.ni-txt{font-size:.58rem;font-weight:600;letter-spacing:.04em;color:var(--muted);text-transform:uppercase}
+.ni.on .ni-txt{color:var(--lime)}
+
+/* ── SECTION HEAD ── */
+.shead{padding:14px 18px 8px}
+.stitle{font-size:1.05rem;font-weight:700}
+.ssub{font-size:.72rem;color:var(--muted);margin-top:1px}
+
+/* ── CAMERA ── */
+.cam-wrap{position:relative;margin:0 14px;border-radius:var(--r);overflow:hidden;background:#000;aspect-ratio:3/4;max-height:50vh;border:1.5px solid var(--limeborder)}
+#vid{width:100%;height:100%;object-fit:cover;display:block}
+#cvs{display:none}
+
+/* Overlay corners */
+.ov{position:absolute;inset:0;pointer-events:none}
+.c{position:absolute;width:26px;height:26px;border-color:var(--lime);border-style:solid;opacity:0;transition:opacity .4s}
+.c.tl{top:15%;left:13%;border-width:2.5px 0 0 2.5px;border-radius:4px 0 0 0}
+.c.tr{top:15%;right:13%;border-width:2.5px 2.5px 0 0;border-radius:0 4px 0 0}
+.c.bl{bottom:15%;left:13%;border-width:0 0 2.5px 2.5px;border-radius:0 0 0 4px}
+.c.br{bottom:15%;right:13%;border-width:0 2.5px 2.5px 0;border-radius:0 0 4px 0}
+.cam-wrap.live .c{opacity:1}
+
+/* Scan beam */
+.beam{position:absolute;left:13%;right:13%;height:2px;background:linear-gradient(90deg,transparent,var(--lime),transparent);box-shadow:0 0 10px var(--lime);top:15%;display:none;animation:beam 2s ease-in-out infinite}
+.cam-wrap.live .beam{display:block}
+@keyframes beam{0%{top:15%;opacity:.95}50%{opacity:.45}100%{top:85%;opacity:.95}}
+
+/* Cam badge */
+.cam-badge{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.65);border:1px solid var(--limeborder);border-radius:20px;padding:3px 12px;font-family:'Space Mono',monospace;font-size:.58rem;color:var(--lime);white-space:nowrap;display:none}
+
+/* Analyzing overlay */
+.aov{position:absolute;inset:0;background:rgba(8,18,9,.82);display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;backdrop-filter:blur(3px)}
+.aov.on{display:flex}
+.ring{width:58px;height:58px;border-radius:50%;border:2.5px solid var(--lime);display:flex;align-items:center;justify-content:center;font-size:1.4rem;animation:ring 1.2s ease-out infinite}
+@keyframes ring{0%{transform:scale(.88);box-shadow:0 0 0 0 rgba(110,212,74,.55)}70%{transform:scale(1);box-shadow:0 0 0 16px rgba(110,212,74,0)}100%{transform:scale(.88);box-shadow:0 0 0 0 rgba(110,212,74,0)}}
+.aov-txt{font-size:.72rem;color:var(--lime);font-family:'Space Mono',monospace;letter-spacing:.04em}
+
+/* Placeholder */
+.ph{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:var(--bg2)}
+.ph-ico{font-size:2.8rem;opacity:.4}
+.ph p{font-size:.75rem;color:var(--muted);text-align:center;padding:0 26px}
+
+/* Shutter */
+.shutter-row{display:flex;justify-content:center;padding:12px 0 2px}
+.shutter{width:64px;height:64px;border-radius:50%;background:var(--lime);border:4px solid var(--bg);outline:2.5px solid var(--lime);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.35rem;transition:.14s;box-shadow:0 4px 18px rgba(110,212,74,.42)}
+.shutter:active{transform:scale(.88)}
+.shutter:disabled{opacity:.28;pointer-events:none}
+
+/* Cam buttons */
+.cam-btns{display:flex;gap:9px;padding:10px 14px 0}
+.cbtn{flex:1;padding:12px;border-radius:13px;border:1.5px solid var(--limeborder);background:var(--card);color:var(--text);font-family:'Outfit',sans-serif;font-size:.8rem;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:.18s}
+.cbtn:active{transform:scale(.95)}
+.cbtn.p{background:var(--lime);color:var(--bg);border-color:var(--lime)}
+.cbtn:disabled{opacity:.3;pointer-events:none}
+
+/* Upload */
+.urow{margin:9px 14px 0}
+.ulbl{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--card);border:1.5px dashed var(--limeborder);border-radius:13px;cursor:pointer;transition:.18s}
+.ulbl:active{background:var(--limedim)}
+.ulbl input{display:none}
+.ulbl span{font-size:.8rem;color:var(--muted)}
+.ulbl strong{color:var(--lime)}
+#thumb{width:42px;height:42px;border-radius:8px;object-fit:cover;display:none;border:1px solid var(--limeborder);flex-shrink:0}
+
+/* ── RESULT CARD ── */
+.rcard{margin:12px 14px 0;background:var(--card);border:1.5px solid var(--limeborder);border-radius:var(--r);overflow:hidden;display:none}
+.rcard.on{display:block}
+.rhead{padding:11px 14px;background:var(--limedim);border-bottom:1px solid var(--limeborder);display:flex;align-items:center;gap:10px}
+.rhead-ico{font-size:1.35rem}
+.rhead-t{font-size:.83rem;font-weight:700;color:var(--lime)}
+.rhead-s{font-size:.67rem;color:var(--muted)}
+.hbadge{margin-left:auto;padding:3px 9px;border-radius:20px;font-size:.62rem;font-weight:700;font-family:'Space Mono',monospace;text-transform:uppercase;white-space:nowrap}
+.b-dead{background:rgba(224,68,68,.17);color:var(--red);border:1px solid rgba(224,68,68,.32)}
+.b-sick{background:rgba(240,192,48,.17);color:var(--gold);border:1px solid rgba(240,192,48,.32)}
+.b-ok  {background:rgba(110,212,74,.17);color:var(--lime);border:1px solid rgba(110,212,74,.32)}
+.rbody{padding:13px 14px;font-size:.81rem;line-height:1.78;color:var(--text);white-space:pre-wrap}
+.rbody strong{color:var(--lime)}
+
+/* Refus card */
+.xcard{margin:12px 14px 0;background:rgba(224,68,68,.06);border:1.5px solid rgba(224,68,68,.25);border-radius:var(--r);padding:14px;display:none;gap:10px;align-items:flex-start}
+.xcard.on{display:flex}
+.xcard-ico{font-size:1.5rem;flex-shrink:0}
+.xcard h4{font-size:.83rem;color:var(--red);margin-bottom:3px}
+.xcard p{font-size:.73rem;color:var(--muted);line-height:1.6}
+
+/* Loading bar */
+.lbar{height:3px;border-radius:3px;background:linear-gradient(90deg,var(--green),var(--lime));margin:10px 14px 0;display:none;animation:lbar 1.4s ease-in-out infinite}
+.lbar.on{display:block}
+@keyframes lbar{0%{opacity:.35;transform:scaleX(.25);transform-origin:left}50%{opacity:1;transform:scaleX(1)}100%{opacity:.35;transform:scaleX(.25);transform-origin:right}}
+
+/* ── METEO FORM ── */
+.mform{padding:0 14px}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:9px}
+.fg{display:flex;flex-direction:column;gap:4px}
+.fg.full{grid-column:1/-1}
+.flbl{font-size:.63rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.fi,.fsel{background:var(--card);border:1.5px solid var(--limeborder);border-radius:11px;padding:10px 12px;color:var(--text);font-family:'Outfit',sans-serif;font-size:.85rem;outline:none;width:100%;transition:.18s;-webkit-appearance:none;appearance:none}
+.fi:focus,.fsel:focus{border-color:var(--lime)}
+.fsel option{background:var(--bg)}
+.bigbtn{width:100%;padding:14px;border-radius:13px;border:none;background:var(--lime);color:var(--bg);font-family:'Outfit',sans-serif;font-size:.88rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:.15s;margin-top:2px}
+.bigbtn:active{transform:scale(.96);background:var(--lime2)}
+.bigbtn:disabled{opacity:.38;pointer-events:none}
+
+/* ── CHAT ── */
+.cpick{padding:0 14px}
+.ci-row{display:flex;gap:8px;margin-bottom:9px}
+.ci{flex:1;background:var(--card);border:1.5px solid var(--limeborder);border-radius:11px;padding:11px 13px;color:var(--text);font-family:'Outfit',sans-serif;font-size:.85rem;outline:none}
+.ci:focus{border-color:var(--lime)}
+.ci::placeholder{color:var(--muted)}
+.go-btn{padding:11px 16px;border-radius:11px;background:var(--lime);color:var(--bg);font-family:'Outfit',sans-serif;font-weight:700;font-size:.82rem;border:none;cursor:pointer;white-space:nowrap;transition:.15s}
+.go-btn:active{transform:scale(.94)}
+
+.chips-label{font-size:.63rem;color:var(--muted);margin-bottom:5px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.chip{padding:6px 11px;border-radius:20px;background:var(--card);border:1px solid var(--limeborder);font-size:.72rem;font-weight:500;color:var(--muted);cursor:pointer;transition:.15s;user-select:none}
+.chip:active{background:var(--limedim);color:var(--lime);border-color:var(--lime)}
+
+/* Chat window */
+.cwin{margin:0 14px;background:var(--card);border:1.5px solid var(--limeborder);border-radius:var(--r);overflow:hidden;display:none}
+.cwin.on{display:block}
+.cbar{padding:9px 13px;background:var(--limedim);border-bottom:1px solid var(--limeborder);display:flex;align-items:center;gap:8px}
+.cbar-t{font-size:.76rem;font-weight:700;color:var(--lime);flex:1}
+.cbar-x{background:none;border:none;color:var(--muted);font-size:.95rem;cursor:pointer;padding:2px 5px;line-height:1}
+.cmsgs{height:285px;overflow-y:auto;padding:11px;display:flex;flex-direction:column;gap:9px;-webkit-overflow-scrolling:touch}
+
+/* Bubbles */
+.bw{display:flex;gap:7px;animation:fu .22s ease}
+@keyframes fu{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+.bw.usr{flex-direction:row-reverse}
+.av{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.8rem;flex-shrink:0;border:1px solid var(--limeborder)}
+.av.ai {background:var(--limedim)}
+.av.usr{background:rgba(58,157,221,.14)}
+.bb{background:rgba(255,255,255,.046);border:1px solid var(--limeborder);border-radius:13px;padding:8px 11px;font-size:.8rem;line-height:1.68;max-width:80%;white-space:pre-wrap}
+.bw.usr .bb{background:rgba(110,212,74,.09);border-color:rgba(110,212,74,.2)}
+.bb strong{color:var(--lime)}
+
+.dots{display:flex;gap:4px;padding:3px 1px}
+.dots span{width:5px;height:5px;background:var(--lime);border-radius:50%;opacity:.3;animation:dot 1.1s infinite}
+.dots span:nth-child(2){animation-delay:.18s}
+.dots span:nth-child(3){animation-delay:.36s}
+@keyframes dot{50%{opacity:1;transform:translateY(-2px)}}
+
+/* Chat input */
+.cin-row{border-top:1px solid var(--limeborder);padding:9px;display:flex;gap:7px}
+.ctxt{flex:1;background:rgba(255,255,255,.046);border:1px solid var(--limeborder);border-radius:11px;padding:9px 12px;color:var(--text);font-family:'Outfit',sans-serif;font-size:.8rem;outline:none;resize:none;height:38px;transition:.18s}
+.ctxt:focus{border-color:var(--lime)}
+.ctxt::placeholder{color:var(--muted)}
+.send{width:38px;height:38px;border-radius:11px;background:var(--lime);border:none;color:var(--bg);font-size:.95rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:.14s}
+.send:active{transform:scale(.9)}
+
+/* ── MODAL CLÉ API ── */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:500;display:flex;align-items:flex-end;padding:14px;padding-bottom:calc(14px + var(--safe-b));backdrop-filter:blur(10px)}
+.msheet{background:#0b1e0d;border:1.5px solid var(--limeborder);border-radius:22px;padding:22px 18px;width:100%}
+.mt{font-size:1.05rem;font-weight:800;color:var(--lime);margin-bottom:5px}
+.md{font-size:.75rem;color:var(--muted);margin-bottom:14px;line-height:1.6}
+.mkey{width:100%;background:rgba(0,0,0,.4);border:1.5px solid var(--limeborder);border-radius:11px;padding:11px 13px;color:var(--text);font-family:'Space Mono',monospace;font-size:.73rem;outline:none;margin-bottom:11px}
+.mkey:focus{border-color:var(--lime)}
+.mnote{font-size:.65rem;color:var(--muted);margin-top:9px;line-height:1.6}
+.mnote a{color:var(--lime);text-decoration:none}
+
+::-webkit-scrollbar{width:3px}
+::-webkit-scrollbar-thumb{background:var(--limeborder);border-radius:10px}
+</style>
+</head>
+<body>
+
+<!-- ── MODAL CLÉ API ── -->
+<div class="modal-bg" id="modal">
+  <div class="msheet">
+    <div style="font-size:1.8rem;margin-bottom:7px">🌿</div>
+    <div class="mt">AgriVision AI 🇨🇲</div>
+    <p class="md">Entrez votre clé API Anthropic pour activer l'IA. Elle est stockée sur votre appareil uniquement.</p>
+    <input class="mkey" id="kinp" type="password" placeholder="sk-ant-api03-…">
+    <button class="bigbtn" onclick="saveKey()">✓ Activer AgriVision AI</button>
+    <p class="mnote">Clé gratuite sur <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a> · Stockage local uniquement.</p>
+  </div>
+</div>
+
+<!-- ── APP ── -->
+<div class="app">
+  <div class="safe-top"></div>
+
+  <header>
+    <div class="brand">
+      <div class="logo">🌿</div>
+      <div>
+        <div class="app-name">AgriVision AI</div>
+        <div class="app-sub">🇨🇲 Cultures du Cameroun</div>
+      </div>
+    </div>
+    <button class="key-pill" id="kbtn" onclick="document.getElementById('modal').style.display='flex'">⚙ Clé API</button>
+  </header>
+
+  <div class="scroll" id="scr">
+
+    <!-- ══ PANEL SCAN ══ -->
+    <div class="panel active" id="p-scan">
+      <div class="shead">
+        <div class="stitle">📷 Scanner une plante</div>
+        <div class="ssub">Cultures camerounaises uniquement · Temps réel</div>
+      </div>
+
+      <div class="cam-wrap" id="camWrap">
+        <video id="vid" autoplay playsinline muted></video>
+        <canvas id="cvs"></canvas>
+        <div class="ov">
+          <div class="c tl"></div><div class="c tr"></div>
+          <div class="c bl"></div><div class="c br"></div>
+          <div class="beam"></div>
+        </div>
+        <div class="aov" id="aov">
+          <div class="ring">🌿</div>
+          <div class="aov-txt" id="atxt">Analyse en cours…</div>
+        </div>
+        <div class="ph" id="ph">
+          <div class="ph-ico">📷</div>
+          <p>Activez la caméra pour scanner<br>une plante camerounaise en temps réel</p>
+        </div>
+        <div class="cam-badge" id="cbadge">🟢 CAMÉRA ACTIVE</div>
+      </div>
+
+      <div class="shutter-row">
+        <button class="shutter" id="shut" onclick="snap()" disabled>🔬</button>
+      </div>
+
+      <div class="cam-btns">
+        <button class="cbtn p" id="bon"  onclick="startCam()">▶ Caméra</button>
+        <button class="cbtn"   id="boff" onclick="stopCam()"  style="display:none">■ Stop</button>
+        <button class="cbtn"   id="bflip" onclick="flip()"    style="display:none">🔄 Flip</button>
+      </div>
+
+      <div class="urow">
+        <label class="ulbl" for="finp">
+          <input type="file" id="finp" accept="image/*" onchange="upload(event)">
+          <img id="thumb" alt="">
+          <span>📁 <strong>Importer</strong> une photo JPG / PNG</span>
+        </label>
+      </div>
+
+      <!-- Refus -->
+      <div class="xcard" id="xcard">
+        <div class="xcard-ico" id="xico">🚫</div>
+        <div>
+          <h4 id="xtit">Refusé</h4>
+          <p id="xmsg"></p>
+        </div>
+      </div>
+
+      <div class="lbar" id="lb1"></div>
+
+      <!-- Résultat diagnostic -->
+      <div class="rcard" id="rc1">
+        <div class="rhead">
+          <div class="rhead-ico" id="rico">🌿</div>
+          <div>
+            <div class="rhead-t" id="rtit">Diagnostic</div>
+            <div class="rhead-s" id="rsub">AgriVision AI</div>
+          </div>
+          <div class="hbadge" id="hbadge"></div>
+        </div>
+        <div class="rbody" id="rbody"></div>
+      </div>
+    </div>
+
+    <!-- ══ PANEL MÉTÉO ══ -->
+    <div class="panel" id="p-meteo">
+      <div class="shead">
+        <div class="stitle">🌦 Météo agricole</div>
+        <div class="ssub">Impact climatique sur vos cultures 🇨🇲</div>
+      </div>
+      <div class="mform">
+        <div class="fgrid">
+          <div class="fg full">
+            <div class="flbl">Localisation</div>
+            <input class="fi" id="mLieu" type="text" placeholder="Ex: Bafoussam, Garoua, Douala" value="Yaoundé, Centre">
+          </div>
+        </div>
+        <div class="fgrid">
+          <div class="fg">
+            <div class="flbl">Température (°C)</div>
+            <input class="fi" id="mTemp" type="number" value="26" min="-5" max="50">
+          </div>
+          <div class="fg">
+            <div class="flbl">Humidité (%)</div>
+            <input class="fi" id="mHum" type="number" value="75" min="0" max="100">
+          </div>
+        </div>
+        <div class="fgrid">
+          <div class="fg">
+            <div class="flbl">Précipitations</div>
+            <select class="fsel" id="mPluie">
+              <option value="aucune">Pas de pluie</option>
+              <option value="légère">Pluie légère</option>
+              <option value="modérée" selected>Modérée</option>
+              <option value="forte">Pluie forte</option>
+              <option value="inondations">Inondations</option>
+            </select>
+          </div>
+          <div class="fg">
+            <div class="flbl">Saison</div>
+            <select class="fsel" id="mSaison">
+              <option value="Grande saison sèche">Grande sèche</option>
+              <option value="Petite saison sèche">Petite sèche</option>
+              <option value="Grande saison des pluies" selected>Grande pluies</option>
+              <option value="Petite saison des pluies">Petite pluies</option>
+            </select>
+          </div>
+        </div>
+        <div class="fgrid">
+          <div class="fg full">
+            <div class="flbl">Vos cultures actuelles</div>
+            <input class="fi" id="mCult" type="text" placeholder="Ex: maïs, manioc, tomate, cacao">
+          </div>
+        </div>
+        <button class="bigbtn" id="bmeto" onclick="doMeteo()">🌦 Analyser le climat</button>
+      </div>
+      <div class="lbar" id="lb2"></div>
+      <div class="rcard on" id="rc2" style="display:none;margin-top:12px">
+        <div class="rhead">
+          <div class="rhead-ico">🌦</div>
+          <div>
+            <div class="rhead-t">Rapport Météo — Cameroun</div>
+            <div class="rhead-s" id="msub">AgriVision AI</div>
+          </div>
+        </div>
+        <div class="rbody" id="mbody"></div>
+      </div>
+    </div>
+
+    <!-- ══ PANEL CONSEIL ══ -->
+    <div class="panel" id="p-conseil">
+      <div class="shead">
+        <div class="stitle">🤖 Agent conseil</div>
+        <div class="ssub">Expert cultures camerounaises · 24h/24</div>
+      </div>
+      <div class="cpick">
+        <div class="ci-row">
+          <input class="ci" id="cult-inp" type="text" placeholder="Maïs, cacao, manioc…"
+            onkeydown="if(event.key==='Enter')go()">
+          <button class="go-btn" onclick="go()">Démarrer →</button>
+        </div>
+        <div class="chips-label">Cultures rapides :</div>
+        <div class="chips" id="chips"></div>
+      </div>
+
+      <div class="cwin" id="cwin">
+        <div class="cbar">
+          <span class="cbar-t" id="ctit">💬 Expert —</span>
+          <button class="cbar-x" onclick="closeChat()">✕</button>
+        </div>
+        <div class="cmsgs" id="cmsgs"></div>
+        <div class="cin-row">
+          <textarea class="ctxt" id="ctxt" placeholder="Posez votre question…" rows="1"
+            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();send()}"
+            oninput="this.style.height='38px';this.style.height=Math.min(this.scrollHeight,88)+'px'"></textarea>
+          <button class="send" onclick="send()">➤</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /scroll -->
+
+  <nav>
+    <div class="ni on" id="ni-scan"    onclick="show('scan')"   ><div class="ni-ico">📷</div><div class="ni-txt">Scanner</div></div>
+    <div class="ni"    id="ni-meteo"   onclick="show('meteo')"  ><div class="ni-ico">🌦</div><div class="ni-txt">Météo</div></div>
+    <div class="ni"    id="ni-conseil" onclick="show('conseil')"><div class="ni-ico">🤖</div><div class="ni-txt">Conseil</div></div>
+  </nav>
+</div>
+
+<script>
+/* ── ÉTAT ── */
+let KEY='', stream=null, face='environment', hist=[], cult='';
+
+const CHIPS=[
+  ['🌽','Maïs'],['🌿','Manioc'],['🍌','Plantain'],['🍫','Cacao'],
+  ['☕','Café robusta'],['🍅','Tomate'],['🌴','Palmier à huile'],
+  ['🥜','Arachide'],['🍍','Ananas'],['🌾','Sorgho'],['🫘','Haricot'],
+  ['🧅','Oignon'],['🌶','Piment'],['🥑','Avocat'],['🍈','Safou'],
+];
+
+/* ── INIT ── */
+window.onload=()=>{
+  KEY=localStorage.getItem('av2_key')||'';
+  if(KEY){hideModal();markOk();}
+  const ch=document.getElementById('chips');
+  CHIPS.forEach(([e,n])=>{
+    const d=document.createElement('div');
+    d.className='chip';d.textContent=`${e} ${n}`;
+    d.onclick=()=>{document.getElementById('cult-inp').value=n;go();};
+    ch.appendChild(d);
+  });
+};
+function hideModal(){document.getElementById('modal').style.display='none';}
+function markOk(){const b=document.getElementById('kbtn');b.textContent='✓ API';b.classList.add('set');}
+function saveKey(){
+  const k=document.getElementById('kinp').value.trim();
+  if(!k.startsWith('sk-')){alert('Clé invalide — doit commencer par sk-ant-…');return;}
+  KEY=k;localStorage.setItem('av2_key',k);hideModal();markOk();
+}
+
+/* ── NAV ── */
+function show(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.ni').forEach(n=>n.classList.remove('on'));
+  document.getElementById('p-'+id).classList.add('active');
+  document.getElementById('ni-'+id).classList.add('on');
+  document.getElementById('scr').scrollTop=0;
+}
+
+/* ── APPEL API FLASK ── */
+async function api(ep,body){
+  if(!KEY){document.getElementById('modal').style.display='flex';throw new Error('Clé manquante');}
+  const r=await fetch(ep,{
+    method:'POST',
+    headers:{'Content-Type':'application/json','X-API-Key':KEY},
+    body:JSON.stringify(body)
+  });
+  const d=await r.json();
+  if(!r.ok||d.error)throw new Error(d.error||`Erreur ${r.status}`);
+  return d;
+}
+
+/* ── FORMAT ── */
+function fmt(t){
+  return t
+    .replace(/##\s*(.+)/g,'<strong style="color:var(--lime);display:block;margin:.65rem 0 .18rem">$1</strong>')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/^[-•]\s(.+)/gm,'  · $1')
+    .replace(/✓/g,'<span style="color:#6ed44a">✓</span>')
+    .replace(/⚠/g,'<span style="color:#f0c030">⚠</span>')
+    .replace(/✗/g,'<span style="color:#e04444">✗</span>');
+}
+
+/* ── MODULE 1 : CAMÉRA ── */
+async function startCam(){
+  try{
+    if(stream)stopCam();
+    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:face,width:{ideal:1280},height:{ideal:960}}});
+    document.getElementById('vid').srcObject=stream;
+    document.getElementById('ph').style.display='none';
+    document.getElementById('cbadge').style.display='block';
+    document.getElementById('camWrap').classList.add('live');
+    document.getElementById('bon').style.display='none';
+    document.getElementById('boff').style.display='';
+    document.getElementById('bflip').style.display='';
+    document.getElementById('shut').disabled=false;
+  }catch(e){alert('Caméra inaccessible : '+e.message);}
+}
+function stopCam(){
+  if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}
+  document.getElementById('vid').srcObject=null;
+  document.getElementById('ph').style.display='flex';
+  document.getElementById('cbadge').style.display='none';
+  document.getElementById('camWrap').classList.remove('live');
+  document.getElementById('bon').style.display='';
+  document.getElementById('boff').style.display='none';
+  document.getElementById('bflip').style.display='none';
+  document.getElementById('shut').disabled=true;
+}
+async function flip(){face=face==='environment'?'user':'environment';await startCam();}
+
+async function snap(){
+  const v=document.getElementById('vid'),c=document.getElementById('cvs');
+  c.width=v.videoWidth;c.height=v.videoHeight;
+  c.getContext('2d').drawImage(v,0,0);
+  await diag(c.toDataURL('image/jpeg',.88).split(',')[1],'image/jpeg');
+}
+
+function upload(e){
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=async ev=>{
+    const src=ev.target.result;
+    const th=document.getElementById('thumb');th.src=src;th.style.display='block';
+    await diag(src.split(',')[1],f.type||'image/jpeg');
+  };
+  r.readAsDataURL(f);
+}
+
+async function diag(b64,mime){
+  document.getElementById('xcard').classList.remove('on');
+  document.getElementById('rc1').classList.remove('on');
+  document.getElementById('lb1').classList.add('on');
+  document.getElementById('aov').classList.add('on');
+  document.getElementById('atxt').textContent='Identification…';
+  setTimeout(()=>{document.getElementById('atxt').textContent='Diagnostic en cours…';},1800);
+
+  try{
+    const d=await api('/api/diagnostic',{image:b64,mime});
+    if(d.type==='non_plante'){
+      showX('🚫','Pas une plante',`Détecté : ${d.message}. AgriVision AI analyse uniquement des végétaux agricoles.`);
+    }else if(d.type==='non_cameroun'){
+      showX('🇨🇲','Hors Cameroun',`${d.message} — AgriVision AI gère uniquement les cultures du Cameroun : maïs, manioc, cacao, café, plantain, tomate…`);
+    }else{
+      const map={morte:['💀 MORTE','b-dead','💀'],malade:['⚠ MALADE','b-sick','🍂'],saine:['✓ SAINE','b-ok','🌱']};
+      const [badge,cls,ico]=map[d.etat]||map.saine;
+      const pm=d.texte.match(/##\s*Plante identifi[ée]+\s*\n([^\n]+)/i);
+      document.getElementById('rico').textContent=ico;
+      document.getElementById('rtit').textContent=pm?pm[1].trim():'Plante camerounaise';
+      document.getElementById('rsub').textContent=new Date().toLocaleString('fr-FR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+      const hb=document.getElementById('hbadge');hb.textContent=badge;hb.className='hbadge '+cls;
+      document.getElementById('rbody').innerHTML=fmt(d.texte);
+      document.getElementById('rc1').classList.add('on');
+      setTimeout(()=>document.getElementById('rc1').scrollIntoView({behavior:'smooth',block:'start'}),200);
+    }
+  }catch(e){alert('Erreur : '+e.message);}
+  finally{
+    document.getElementById('lb1').classList.remove('on');
+    document.getElementById('aov').classList.remove('on');
+  }
+}
+function showX(ico,tit,msg){
+  document.getElementById('xico').textContent=ico;
+  document.getElementById('xtit').textContent=tit;
+  document.getElementById('xmsg').textContent=msg;
+  document.getElementById('xcard').classList.add('on');
+}
+
+/* ── MODULE 2 : MÉTÉO ── */
+async function doMeteo(){
+  document.getElementById('rc2').style.display='none';
+  document.getElementById('lb2').classList.add('on');
+  document.getElementById('bmeto').disabled=true;
+  const lieu=document.getElementById('mLieu').value||'Yaoundé';
+  try{
+    const d=await api('/api/meteo',{
+      lieu,
+      temperature:parseFloat(document.getElementById('mTemp').value)||26,
+      humidite:parseFloat(document.getElementById('mHum').value)||75,
+      precipitations:document.getElementById('mPluie').value,
+      saison:document.getElementById('mSaison').value,
+      cultures:document.getElementById('mCult').value||'cultures vivrières',
+    });
+    document.getElementById('msub').textContent=`${lieu} · ${new Date().toLocaleDateString('fr-FR')}`;
+    document.getElementById('mbody').innerHTML=fmt(d.texte);
+    document.getElementById('rc2').style.display='block';
+    setTimeout(()=>document.getElementById('rc2').scrollIntoView({behavior:'smooth',block:'start'}),200);
+  }catch(e){alert('Erreur : '+e.message);}
+  finally{document.getElementById('lb2').classList.remove('on');document.getElementById('bmeto').disabled=false;}
+}
+
+/* ── MODULE 3 : CHAT ── */
+function go(){
+  const c=document.getElementById('cult-inp').value.trim();
+  if(!c){alert('Entrez une culture camerounaise.');return;}
+  cult=c;hist=[];
+  document.getElementById('ctit').textContent=`💬 Expert — ${c}`;
+  document.getElementById('cwin').classList.add('on');
+  document.getElementById('cmsgs').innerHTML='';
+  addB('ai',`Bonjour ! 👋 Je suis votre expert pour **${c}** au Cameroun.\n\nJe vous conseille sur :\n🌱 Variétés adaptées à votre région\n🐛 Maladies & traitements locaux\n💧 Irrigation & fertilisation\n📅 Calendrier cultural camerounais\n💰 Rendements & marchés (FCFA)\n📞 Contacts IRAD / MINADER\n\nQuelle est votre question ?`);
+  document.getElementById('cwin').scrollIntoView({behavior:'smooth'});
+  setTimeout(()=>document.getElementById('ctxt').focus(),400);
+}
+function closeChat(){document.getElementById('cwin').classList.remove('on');hist=[];cult='';document.getElementById('cult-inp').value='';}
+
+function addB(role,txt){
+  const m=document.getElementById('cmsgs');
+  const w=document.createElement('div');w.className=`bw ${role}`;
+  const a=document.createElement('div');a.className=`av ${role}`;a.textContent=role==='ai'?'🌿':'👤';
+  const b=document.createElement('div');b.className='bb';b.innerHTML=fmt(txt);
+  w.appendChild(a);w.appendChild(b);m.appendChild(w);m.scrollTop=m.scrollHeight;
+  return w;
+}
+function addTyping(){
+  const m=document.getElementById('cmsgs');
+  const w=document.createElement('div');w.className='bw ai';w.id='typdiv';
+  w.innerHTML='<div class="av ai">🌿</div><div class="bb"><div class="dots"><span></span><span></span><span></span></div></div>';
+  m.appendChild(w);m.scrollTop=m.scrollHeight;
+}
+async function send(){
+  const inp=document.getElementById('ctxt');
+  const t=inp.value.trim();if(!t||!cult)return;
+  inp.value='';inp.style.height='38px';
+  addB('usr',t);hist.push({role:'user',content:t});addTyping();
+  try{
+    const d=await api('/api/conseil',{culture:cult,question:t,history:hist.slice(-12)});
+    document.getElementById('typdiv')?.remove();
+    addB('ai',d.texte);hist.push({role:'assistant',content:d.texte});
+    if(hist.length>18)hist=hist.slice(-18);
+  }catch(e){document.getElementById('typdiv')?.remove();addB('ai','❌ '+e.message);}
+}
+</script>
+</body>
+</html>
