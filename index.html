@@ -218,9 +218,9 @@ nav{position:absolute;bottom:0;left:0;right:0;padding:8px 12px;padding-bottom:ca
     <div style="font-size:1.8rem;margin-bottom:7px">🌿</div>
     <div class="mt">AgriVision AI 🇨🇲</div>
     <p class="md">Entrez votre clé API Anthropic pour activer l'IA. Elle est stockée sur votre appareil uniquement.</p>
-    <input class="mkey" id="kinp" type="password" placeholder="sk-ant-api03-…">
+    <input class="mkey" id="kinp" type="password" placeholder="sk-ant-… ou AIza… (Google)">
     <button class="bigbtn" onclick="saveKey()">✓ Activer AgriVision AI</button>
-    <p class="mnote">Clé gratuite sur <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a> · Stockage local uniquement.</p>
+    <p class="mnote"><b style='color:#6ed44a'>Anthropic</b> : console.anthropic.com (sk-ant-…) · <b style='color:#6ed44a'>Google Gemini gratuit</b> : aistudio.google.com (AIza…)</p>
   </div>
 </div>
 
@@ -442,8 +442,10 @@ function hideModal(){document.getElementById('modal').style.display='none';}
 function markOk(){const b=document.getElementById('kbtn');b.textContent='✓ API';b.classList.add('set');}
 function saveKey(){
   const k=document.getElementById('kinp').value.trim();
-  if(!k.startsWith('sk-')){alert('Clé invalide — doit commencer par sk-ant-…');return;}
-  KEY=k;localStorage.setItem('av2_key',k);hideModal();markOk();
+  if(!k.startsWith('sk-')&&!k.startsWith('AIza')){alert('Clé invalide.
+• Anthropic : sk-ant-…
+• Google Gemini : AIza…');return;}
+  KEY=k;localStorage.setItem('av2_key',k);hideModal();const b=document.getElementById('kbtn');b.textContent=k.startsWith('AIza')?'✓ Gemini':'✓ Claude';b.classList.add('set');
 }
 
 /* ── NAV ── */
